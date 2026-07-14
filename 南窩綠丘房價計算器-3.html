@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>南窩綠丘｜平日房價計算器</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap');
+
+  :root{
+    --forest: #2f3e2f;
+    --forest-deep: #1f2b20;
+    --olive: #6b7a4f;
+    --gold: #b98d3e;
+    --cream: #f6f3ea;
+    --paper: #fffdf8;
+    --line: #ded6c2;
+    --ink: #2a2a24;
+    --muted: #7c7867;
+  }
+
+  * { box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Noto Sans TC', sans-serif;
+    line-height:1.6;
+  }
+
+  .wrap{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  header{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    margin-bottom: 8px;
+  }
+
+  header .mark{
+    width:52px;height:52px;
+    border-radius:50%;
+    background: var(--forest);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--cream);
+    font-family:'Noto Serif TC', serif;
+    font-weight:700;
+    font-size:20px;
+    flex-shrink:0;
+  }
+
+  h1{
+    font-family:'Noto Serif TC', serif;
+    font-size: 26px;
+    font-weight:700;
+    color: var(--forest-deep);
+    margin:0;
+    letter-spacing: 0.5px;
+  }
+
+  .subtitle{
+    color: var(--muted);
+    font-size:14px;
+    margin: 4px 0 0;
+  }
+
+  .rule-card{
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--gold);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 28px 0 32px;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .rule-card b{ color: var(--forest-deep); }
+
+  .panel{
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+
+  .panel h2{
+    font-family:'Noto Serif TC', serif;
+    font-size: 17px;
+    margin: 0 0 18px;
+    color: var(--forest-deep);
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+  }
+  .panel h2 .eyebrow{
+    font-size:11px;
+    letter-spacing:2px;
+    color: var(--gold);
+    font-family:'Noto Sans TC', sans-serif;
+    font-weight:700;
+  }
+
+  .nights-row{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+
+  .stepper{
+    display:flex;
+    align-items:center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow:hidden;
+  }
+  .stepper button{
+    width:40px;height:40px;
+    border:none;
+    background: var(--forest);
+    color:var(--cream);
+    font-size:18px;
+    cursor:pointer;
+  }
+  .stepper button:hover{ background: var(--forest-deep); }
+  .stepper button:disabled{ background:#c9c3b0; cursor:not-allowed; }
+  .stepper .val{
+    width:56px;
+    text-align:center;
+    font-size:17px;
+    font-weight:600;
+  }
+
+  .room-grid{
+    display:grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 10px 16px;
+    align-items:center;
+  }
+  .room-grid .head{
+    font-size:12px;
+    color: var(--muted);
+    letter-spacing:1px;
+    padding-bottom:8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .room-row{
+    display:contents;
+  }
+  .room-row .name{
+    padding: 10px 0;
+    font-weight:600;
+    color: var(--forest-deep);
+  }
+  .room-row .name small{
+    display:block;
+    font-weight:400;
+    color: var(--muted);
+    font-size:12px;
+    margin-top:2px;
+  }
+  .room-row .price{
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .qty-stepper{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .qty-stepper button{
+    width:30px;height:30px;
+    border:1px solid var(--line);
+    background: var(--paper);
+    border-radius:6px;
+    font-size:15px;
+    cursor:pointer;
+    color: var(--forest-deep);
+  }
+  .qty-stepper button:hover{ background: var(--cream); }
+  .qty-stepper button:disabled{ opacity:0.35; cursor:not-allowed; }
+  .qty-stepper .qval{ width:20px; text-align:center; font-weight:600; }
+
+  .divider{
+    border:none;
+    border-top: 1px solid var(--line);
+    margin: 20px 0;
+  }
+
+  .breakdown table{
+    width:100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .breakdown th{
+    text-align:left;
+    font-size:11px;
+    letter-spacing:1px;
+    color: var(--muted);
+    font-weight:600;
+    padding: 0 0 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .breakdown th.num, .breakdown td.num{ text-align:right; }
+  .breakdown td{
+    padding: 10px 0;
+    border-bottom: 1px solid #ece7d8;
+  }
+  .breakdown .night-tag{
+    display:inline-block;
+    font-size:11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-right:6px;
+    font-weight:600;
+  }
+  .night-tag.first{ background:#e7ecdd; color: var(--forest-deep); }
+  .night-tag.second{ background:#f6e6d0; color: #8a5a15; }
+
+  .total-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    padding-top: 18px;
+    margin-top: 6px;
+  }
+  .total-row .label{
+    font-size:14px;
+    color: var(--muted);
+  }
+  .total-row .amount{
+    font-family:'Noto Serif TC', serif;
+    font-size: 32px;
+    font-weight:700;
+    color: var(--forest-deep);
+  }
+  .total-row .amount span{
+    font-size:16px;
+    font-weight:500;
+    margin-left:4px;
+  }
+
+  .empty{
+    color: var(--muted);
+    font-size: 14px;
+    padding: 12px 0;
+  }
+
+  footer{
+    text-align:center;
+    color: var(--muted);
+    font-size:12px;
+    margin-top: 36px;
+  }
+
+  @media (max-width: 560px){
+    .room-grid{ grid-template-columns: 1.2fr 1fr; }
+    .room-grid .head:nth-child(2){ display:none; }
+    .room-row .price{ display:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="mark">綠丘</div>
+    <div>
+      <h1>南窩綠丘 GREENHILL</h1>
+      <p class="subtitle">平日房價計算器</p>
+    </div>
+  </header>
+
+  <div class="rule-card">
+    <b>計價規則：</b>平日第一晚為公告價 <b>9折</b>；<b>第二晚</b>為公告價 <b>5折</b>；第三晚起恢復第一晚的 9折 計價（週期重複）。
+  </div>
+
+  <div class="panel">
+    <h2><span class="eyebrow">STEP 1</span> 選擇住宿晚數</h2>
+    <div class="nights-row">
+      <div class="stepper">
+        <button id="nightsMinus" type="button">－</button>
+        <div class="val" id="nightsVal">1</div>
+        <button id="nightsPlus" type="button">＋</button>
+      </div>
+      <div id="nightsHint" class="empty" style="padding:0;"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="eyebrow">STEP 2</span> 選擇房型與間數</h2>
+    <div class="room-grid" id="roomGrid">
+      <div class="head">房型</div>
+      <div class="head">公告價 / 晚</div>
+      <div class="head">預訂間數</div>
+      <!-- rows injected by JS -->
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="eyebrow">STEP 3</span> 計算結果</h2>
+    <div class="breakdown" id="breakdown">
+      <div class="empty">請先選擇至少一間房型。</div>
+    </div>
+    <hr class="divider">
+    <div class="total-row">
+      <div class="label">總計金額</div>
+      <div class="amount" id="totalAmount">NT$ 0</div>
+    </div>
+  </div>
+
+  <footer>此工具僅供內部快速估價使用，實際房價請以官方公告與訂房系統為準。</footer>
+</div>
+
+<script>
+  const ROOMS = [
+    { key: 'cozy',   name: '溫馨雙人房', capMax: 2, price: 4800 },
+    { key: 'view',   name: '景觀雙人房', capMax: 2, price: 5200 },
+    { key: 'loft',   name: '樓中樓四人', capMax: 2, price: 7200 },
+    { key: 'family', name: '家庭五人房', capMax: 1, price: 8800 },
+  ];
+
+  let nights = 1;
+  const qty = Object.fromEntries(ROOMS.map(r => [r.key, 0]));
+
+  const roomGrid = document.getElementById('roomGrid');
+  const nightsVal = document.getElementById('nightsVal');
+  const nightsHint = document.getElementById('nightsHint');
+  const breakdown = document.getElementById('breakdown');
+  const totalAmount = document.getElementById('totalAmount');
+
+  function fmt(n){ return 'NT$ ' + n.toLocaleString('en-US'); }
+
+  function nightRate(nightIndex){
+    // nightIndex is 1-based. Night 2 (and every 2nd night in the pattern) = 50%.
+    // Rule as specified: night 1 = 90%, night 2 = 50%, night 3 = 90% (repeats).
+    return (nightIndex % 2 === 0) ? 0.5 : 0.9;
+  }
+
+  function buildRoomRows(){
+    ROOMS.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'room-row';
+      row.innerHTML = `
+        <div class="name">${r.name}<small>共 ${r.capMax} 間可預訂</small></div>
+        <div class="price">${fmt(r.price)}</div>
+        <div class="qty-stepper">
+          <button type="button" data-action="minus" data-key="${r.key}">－</button>
+          <div class="qval" id="qty-${r.key}">0</div>
+          <button type="button" data-action="plus" data-key="${r.key}" ${r.capMax === 0 ? 'disabled' : ''}>＋</button>
+        </div>
+      `;
+      roomGrid.appendChild(row);
+    });
+
+    roomGrid.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-key]');
+      if (!btn) return;
+      const key = btn.dataset.key;
+      const room = ROOMS.find(r => r.key === key);
+      if (btn.dataset.action === 'plus') {
+        if (qty[key] < room.capMax) qty[key]++;
+      } else {
+        if (qty[key] > 0) qty[key]--;
+      }
+      render();
+    });
+  }
+
+  document.getElementById('nightsMinus').addEventListener('click', () => {
+    if (nights > 1) { nights--; render(); }
+  });
+  document.getElementById('nightsPlus').addEventListener('click', () => {
+    if (nights < 14) { nights++; render(); }
+  });
+
+  function render(){
+    nightsVal.textContent = nights;
+    nightsHint.textContent = nights === 1
+      ? '僅住 1 晚，全程以第一晚 9折計價。'
+      : `共 ${nights} 晚：第 1 晚 9折、第 2 晚 5折${nights > 2 ? '，之後依此規律重複' : ''}。`;
+
+    ROOMS.forEach(r => {
+      document.getElementById(`qty-${r.key}`).textContent = qty[r.key];
+      const minusBtn = roomGrid.querySelector(`button[data-action="minus"][data-key="${r.key}"]`);
+      const plusBtn = roomGrid.querySelector(`button[data-action="plus"][data-key="${r.key}"]`);
+      minusBtn.disabled = qty[r.key] <= 0;
+      plusBtn.disabled = qty[r.key] >= r.capMax;
+    });
+
+    const selected = ROOMS.filter(r => qty[r.key] > 0);
+
+    if (selected.length === 0) {
+      breakdown.innerHTML = '<div class="empty">請先選擇至少一間房型。</div>';
+      totalAmount.innerHTML = fmt(0);
+      return;
+    }
+
+    let grandTotal = 0;
+    let rowsHtml = `
+      <table>
+        <thead>
+          <tr>
+            <th>房型</th>
+            <th>晚別 / 折扣</th>
+            <th class="num">單間金額</th>
+            <th class="num">間數</th>
+            <th class="num">小計</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    selected.forEach(r => {
+      for (let n = 1; n <= nights; n++) {
+        const rate = nightRate(n);
+        const perRoom = Math.round(r.price * rate);
+        const subtotal = perRoom * qty[r.key];
+        grandTotal += subtotal;
+        const tagClass = rate === 0.9 ? 'first' : 'second';
+        const tagLabel = rate === 0.9 ? `第 ${n} 晚・9折` : `第 ${n} 晚・5折`;
+        rowsHtml += `
+          <tr>
+            <td>${r.name}</td>
+            <td><span class="night-tag ${tagClass}">${tagLabel}</span></td>
+            <td class="num">${fmt(perRoom)}</td>
+            <td class="num">× ${qty[r.key]}</td>
+            <td class="num">${fmt(subtotal)}</td>
+          </tr>
+        `;
+      }
+    });
+
+    rowsHtml += '</tbody></table>';
+    breakdown.innerHTML = rowsHtml;
+    totalAmount.innerHTML = fmt(grandTotal) + ` <span>／ ${nights} 晚</span>`;
+  }
+
+  buildRoomRows();
+  render();
+</script>
+</body>
+</html>
