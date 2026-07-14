@@ -228,6 +228,7 @@
   }
   .night-tag.first{ background:#e7ecdd; color: var(--forest-deep); }
   .night-tag.second{ background:#f6e6d0; color: #8a5a15; }
+  .night-tag.third{ background:#e3d9ea; color: #5a3a7a; }
 
   .total-row{
     display:flex;
@@ -307,7 +308,7 @@
   </header>
 
   <div class="rule-card">
-    <b>計價規則：</b>平日第一晚為公告價 <b>9折</b>；<b>第二晚起（含第三、四晚）</b>皆為公告價 <b>5折</b>。<br>
+    <b>計價規則：</b>連住越久越划算——第一晚 <b>9折</b>；第二晚 <b>7折</b>；第三晚起 <b>5折</b>。<br>
     <b>加床：</b>每床加收 <b>NT$1,000 / 晚</b>，不隨房價打折（原價計算）。
   </div>
 
@@ -375,8 +376,10 @@
   function fmt(n){ return 'NT$ ' + n.toLocaleString('en-US'); }
 
   function nightRate(nightIndex){
-    // nightIndex is 1-based. Night 1 = 90%；第二晚起（含第三、四晚...）皆為 50%。
-    return nightIndex === 1 ? 0.9 : 0.5;
+    // 第一晚 90%、第二晚 70%、第三晚起 50%。
+    if (nightIndex === 1) return 0.9;
+    if (nightIndex === 2) return 0.7;
+    return 0.5;
   }
 
   function buildRoomRows(){
@@ -445,7 +448,9 @@
     nightsVal.textContent = nights;
     nightsHint.textContent = nights === 1
       ? '僅住 1 晚，以第一晚 9折計價。'
-      : `共 ${nights} 晚：第 1 晚 9折、第 2 晚起（含第 3、4 晚）皆 5折。`;
+      : (nights === 2
+          ? '共 2 晚：第 1 晚 9折、第 2 晚 7折。'
+          : `共 ${nights} 晚：第 1 晚 9折、第 2 晚 7折、第 3 晚起皆 5折。`);
 
     ROOMS.forEach(r => {
       document.getElementById(`qty-${r.key}`).textContent = qty[r.key];
@@ -490,8 +495,8 @@
         const perRoom = Math.round(r.price * rate);
         const subtotal = perRoom * qty[r.key];
         grandTotal += subtotal;
-        const tagClass = rate === 0.9 ? 'first' : 'second';
-        const tagLabel = rate === 0.9 ? `第 ${n} 晚・9折` : `第 ${n} 晚・5折`;
+        const tagClass = rate === 0.9 ? 'first' : (rate === 0.7 ? 'second' : 'third');
+        const tagLabel = rate === 0.9 ? `第 ${n} 晚・9折` : (rate === 0.7 ? `第 ${n} 晚・7折` : `第 ${n} 晚・5折`);
         rowsHtml += `
           <tr>
             <td>${r.name}</td>
