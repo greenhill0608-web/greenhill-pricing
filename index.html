@@ -137,21 +137,27 @@
     font-weight:600;
   }
 
-  .room-grid{
+  .room-list{ display:flex; flex-direction:column; }
+
+  .room-row{
     display:grid;
-    grid-template-columns: 1.4fr 1fr 1fr;
+    grid-template-columns: 1.3fr 0.9fr 1fr 1.2fr;
     gap: 10px 16px;
     align-items:center;
+    padding: 12px 0;
+    border-bottom: 1px solid #ece7d8;
   }
-  .room-grid .head{
+  .room-row:last-child{ border-bottom:none; }
+
+  .room-head{
+    display:grid;
+    grid-template-columns: 1.3fr 0.9fr 1fr 1.2fr;
+    gap: 10px 16px;
     font-size:12px;
     color: var(--muted);
     letter-spacing:1px;
     padding-bottom:8px;
     border-bottom: 1px solid var(--line);
-  }
-  .room-row{
-    display:contents;
   }
   .room-row .name{
     padding: 10px 0;
@@ -259,10 +265,33 @@
     margin-top: 36px;
   }
 
-  @media (max-width: 560px){
-    .room-grid{ grid-template-columns: 1.2fr 1fr; }
-    .room-grid .head:nth-child(2){ display:none; }
-    .room-row .price{ display:none; }
+  .ctrl-label{ display:none; }
+
+  @media (max-width: 640px){
+    .room-head{ display:none; }
+    .room-row{
+      grid-template-columns: 1fr;
+      gap: 10px;
+      padding: 16px 0;
+    }
+    .room-row .price{ display:block; font-size:14px; }
+    .room-row .price::before{
+      content:'公告價 ';
+      color: var(--muted);
+      font-size:13px;
+    }
+    .room-row .name{ padding:0; }
+    .ctrl-label{
+      display:inline-block;
+      width:110px;
+      font-size:13px;
+      color: var(--muted);
+    }
+    .ctrl-line{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
   }
 </style>
 </head>
@@ -278,7 +307,8 @@
   </header>
 
   <div class="rule-card">
-    <b>計價規則：</b>平日第一晚為公告價 <b>9折</b>；<b>第二晚</b>為公告價 <b>5折</b>；第三晚起恢復第一晚的 9折 計價（週期重複）。
+    <b>計價規則：</b>平日第一晚為公告價 <b>9折</b>；<b>第二晚起（含第三、四晚）</b>皆為公告價 <b>5折</b>。<br>
+    <b>加床：</b>每床加收 <b>NT$1,000 / 晚</b>，不隨房價打折（原價計算）。
   </div>
 
   <div class="panel">
@@ -295,10 +325,13 @@
 
   <div class="panel">
     <h2><span class="eyebrow">STEP 2</span> 選擇房型與間數</h2>
-    <div class="room-grid" id="roomGrid">
-      <div class="head">房型</div>
-      <div class="head">公告價 / 晚</div>
-      <div class="head">預訂間數</div>
+    <div class="room-head">
+      <div>房型</div>
+      <div>公告價 / 晚</div>
+      <div>預訂間數</div>
+      <div>加床（NT$1,000/晚）</div>
+    </div>
+    <div class="room-list" id="roomGrid">
       <!-- rows injected by JS -->
     </div>
   </div>
@@ -326,8 +359,12 @@
     { key: 'family', name: '家庭五人房', capMax: 1, price: 8800 },
   ];
 
+  const BED_PRICE = 1000;
+  const BED_MAX_PER_ROOM = 2; // 每間房最多可加床數量（可依實際情況調整）
+
   let nights = 1;
   const qty = Object.fromEntries(ROOMS.map(r => [r.key, 0]));
+  const beds = Object.fromEntries(ROOMS.map(r => [r.key, 0])); // 每種房型「每間」加床數
 
   const roomGrid = document.getElementById('roomGrid');
   const nightsVal = document.getElementById('nightsVal');
@@ -338,9 +375,8 @@
   function fmt(n){ return 'NT$ ' + n.toLocaleString('en-US'); }
 
   function nightRate(nightIndex){
-    // nightIndex is 1-based. Night 2 (and every 2nd night in the pattern) = 50%.
-    // Rule as specified: night 1 = 90%, night 2 = 50%, night 3 = 90% (repeats).
-    return (nightIndex % 2 === 0) ? 0.5 : 0.9;
+    // nightIndex is 1-based. Night 1 = 90%；第二晚起（含第三、四晚...）皆為 50%。
+    return nightIndex === 1 ? 0.9 : 0.5;
   }
 
   function buildRoomRows(){
@@ -350,26 +386,51 @@
       row.innerHTML = `
         <div class="name">${r.name}<small>共 ${r.capMax} 間可預訂</small></div>
         <div class="price">${fmt(r.price)}</div>
-        <div class="qty-stepper">
-          <button type="button" data-action="minus" data-key="${r.key}">－</button>
-          <div class="qval" id="qty-${r.key}">0</div>
-          <button type="button" data-action="plus" data-key="${r.key}" ${r.capMax === 0 ? 'disabled' : ''}>＋</button>
+        <div class="ctrl-line">
+          <span class="ctrl-label">預訂間數</span>
+          <div class="qty-stepper">
+            <button type="button" data-action="minus" data-key="${r.key}">－</button>
+            <div class="qval" id="qty-${r.key}">0</div>
+            <button type="button" data-action="plus" data-key="${r.key}" ${r.capMax === 0 ? 'disabled' : ''}>＋</button>
+          </div>
+        </div>
+        <div class="ctrl-line">
+          <span class="ctrl-label">加床 $1,000/晚</span>
+          <div class="qty-stepper beds">
+            <button type="button" data-bed-action="minus" data-bed-key="${r.key}">－</button>
+            <div class="qval" id="beds-${r.key}">0</div>
+            <button type="button" data-bed-action="plus" data-bed-key="${r.key}">＋</button>
+          </div>
         </div>
       `;
       roomGrid.appendChild(row);
     });
 
     roomGrid.addEventListener('click', (e) => {
-      const btn = e.target.closest('button[data-key]');
-      if (!btn) return;
-      const key = btn.dataset.key;
-      const room = ROOMS.find(r => r.key === key);
-      if (btn.dataset.action === 'plus') {
-        if (qty[key] < room.capMax) qty[key]++;
-      } else {
-        if (qty[key] > 0) qty[key]--;
+      const qtyBtn = e.target.closest('button[data-key]');
+      if (qtyBtn) {
+        const key = qtyBtn.dataset.key;
+        const room = ROOMS.find(r => r.key === key);
+        if (qtyBtn.dataset.action === 'plus') {
+          if (qty[key] < room.capMax) qty[key]++;
+        } else {
+          if (qty[key] > 0) qty[key]--;
+          if (qty[key] === 0) beds[key] = 0; // 沒訂房就不加床
+        }
+        render();
+        return;
       }
-      render();
+
+      const bedBtn = e.target.closest('button[data-bed-key]');
+      if (bedBtn) {
+        const key = bedBtn.dataset.bedKey;
+        if (bedBtn.dataset.bedAction === 'plus') {
+          if (beds[key] < BED_MAX_PER_ROOM) beds[key]++;
+        } else {
+          if (beds[key] > 0) beds[key]--;
+        }
+        render();
+      }
     });
   }
 
@@ -383,8 +444,8 @@
   function render(){
     nightsVal.textContent = nights;
     nightsHint.textContent = nights === 1
-      ? '僅住 1 晚，全程以第一晚 9折計價。'
-      : `共 ${nights} 晚：第 1 晚 9折、第 2 晚 5折${nights > 2 ? '，之後依此規律重複' : ''}。`;
+      ? '僅住 1 晚，以第一晚 9折計價。'
+      : `共 ${nights} 晚：第 1 晚 9折、第 2 晚起（含第 3、4 晚）皆 5折。`;
 
     ROOMS.forEach(r => {
       document.getElementById(`qty-${r.key}`).textContent = qty[r.key];
@@ -392,6 +453,12 @@
       const plusBtn = roomGrid.querySelector(`button[data-action="plus"][data-key="${r.key}"]`);
       minusBtn.disabled = qty[r.key] <= 0;
       plusBtn.disabled = qty[r.key] >= r.capMax;
+
+      document.getElementById(`beds-${r.key}`).textContent = beds[r.key];
+      const bedMinus = roomGrid.querySelector(`button[data-bed-action="minus"][data-bed-key="${r.key}"]`);
+      const bedPlus = roomGrid.querySelector(`button[data-bed-action="plus"][data-bed-key="${r.key}"]`);
+      bedMinus.disabled = qty[r.key] === 0 || beds[r.key] <= 0;
+      bedPlus.disabled = qty[r.key] === 0 || beds[r.key] >= BED_MAX_PER_ROOM;
     });
 
     const selected = ROOMS.filter(r => qty[r.key] > 0);
@@ -432,6 +499,21 @@
             <td class="num">${fmt(perRoom)}</td>
             <td class="num">× ${qty[r.key]}</td>
             <td class="num">${fmt(subtotal)}</td>
+          </tr>
+        `;
+      }
+
+      if (beds[r.key] > 0) {
+        const bedPerNight = BED_PRICE * beds[r.key] * qty[r.key];
+        const bedTotal = bedPerNight * nights;
+        grandTotal += bedTotal;
+        rowsHtml += `
+          <tr>
+            <td>${r.name}・加床</td>
+            <td><span class="night-tag second" style="background:#eee3d6;color:#6b4a1e;">原價・不打折</span></td>
+            <td class="num">${fmt(BED_PRICE)}</td>
+            <td class="num">${beds[r.key]} 床 × ${qty[r.key]} 間 × ${nights} 晚</td>
+            <td class="num">${fmt(bedTotal)}</td>
           </tr>
         `;
       }
